@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  otps          Otp[]
+  portfolios    Portfolio[]
+  watchlists    Watchlist[]
+  transactions  Transaction[]
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  code      String
+  phone     String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([phone, code])
+}
+
+// Asset types: currency, gold, coin, crypto
+model Portfolio {
+  id          String   @id @default(cuid())
+  userId      String
+  assetSlug   String   // e.g., USD, EUR, geram18, BTC
+  assetType   String   // currency, gold, coin, crypto
+  assetName   String   // Persian name
+  quantity    Float    // Amount owned
+  buyPrice    Float    // Average buy price in Toman
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assetSlug])
+  @@index([userId])
+}
+
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  assetSlug   String   // e.g., USD, EUR, geram18, BTC
+  assetType   String   // currency, gold, coin, crypto
+  assetName   String   // Persian name
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assetSlug])
+  @@index([userId])
+}
+
+// Transaction history for portfolio
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  assetSlug   String   // e.g., USD, EUR, geram18, BTC
+  assetType   String   // currency, gold, coin, crypto, stock, car
+  assetName   String   // Persian name
+  type        String   // "buy" or "sell"
+  quantity    Float    // Amount bought/sold
+  price       Float    // Price per unit in Toman
+  totalValue  Float    // Total value of transaction
+  date        DateTime @default(now()) // Transaction date
+  note        String?  // Optional note
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, assetSlug])
+  @@index([userId, date])
+}
